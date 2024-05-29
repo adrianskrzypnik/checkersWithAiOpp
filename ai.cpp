@@ -9,12 +9,14 @@ std::pair<int, int> AI::getBestMove(Board& board) {
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             Piece* piece = board.getPieceAt(i, j);
-            if (piece != nullptr && piece->getColor() == PieceColor::White) {
-                for (int x = 0; x < 8; ++x) {
-                    for (int y = 0; y < 8; ++y) {
-                        if (board.isMoveValid(i, j, x, y)) {
+            if (piece != nullptr && piece->getColor() == PieceColor::Black) {
+                for (int dx = -1; dx <= 1; dx += 2) {
+                    for (int dy = -1; dy <= 1; dy += 2) {
+                        int toX = i + dx;
+                        int toY = j + dy;
+                        if (board.isMoveValid(i, j, toX, toY)) {
                             Board tempBoard = board;
-                            tempBoard.movePiece(i, j, x, y);
+                            tempBoard.movePiece(i, j, toX, toY);
                             int moveValue = minimax(tempBoard, 0, false, -10000, 10000);
                             if (moveValue > bestValue) {
                                 bestValue = moveValue;
@@ -40,11 +42,13 @@ int AI::minimax(Board& board, int depth, bool maximizingPlayer, int alpha, int b
             for (int j = 0; j < 8; ++j) {
                 Piece* piece = board.getPieceAt(i, j);
                 if (piece != nullptr && piece->getColor() == PieceColor::White) {
-                    for (int x = 0; x < 8; ++x) {
-                        for (int y = 0; y < 8; ++y) {
-                            if (board.isMoveValid(i, j, x, y)) {
+                    for (int dx = -1; dx <= 1; dx += 2) {
+                        for (int dy = -1; dy <= 1; dy += 2) {
+                            int toX = i + dx;
+                            int toY = j + dy;
+                            if (board.isMoveValid(i, j, toX, toY)) {
                                 Board tempBoard = board;
-                                tempBoard.movePiece(i, j, x, y);
+                                tempBoard.movePiece(i, j, toX, toY);
                                 int eval = minimax(tempBoard, depth + 1, false, alpha, beta);
                                 maxEval = std::max(maxEval, eval);
                                 alpha = std::max(alpha, eval);
@@ -64,11 +68,13 @@ int AI::minimax(Board& board, int depth, bool maximizingPlayer, int alpha, int b
             for (int j = 0; j < 8; ++j) {
                 Piece* piece = board.getPieceAt(i, j);
                 if (piece != nullptr && piece->getColor() == PieceColor::Black) {
-                    for (int x = 0; x < 8; ++x) {
-                        for (int y = 0; y < 8; ++y) {
-                            if (board.isMoveValid(i, j, x, y)) {
+                    for (int dx = -1; dx <= 1; dx += 2) {
+                        for (int dy = -1; dy <= 1; dy += 2) {
+                            int toX = i + dx;
+                            int toY = j + dy;
+                            if (board.isMoveValid(i, j, toX, toY)) {
                                 Board tempBoard = board;
-                                tempBoard.movePiece(i, j, x, y);
+                                tempBoard.movePiece(i, j, toX, toY);
                                 int eval = minimax(tempBoard, depth + 1, true, alpha, beta);
                                 minEval = std::min(minEval, eval);
                                 beta = std::min(beta, eval);

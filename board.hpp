@@ -11,6 +11,7 @@ public:
     Piece* getPieceAt(int x, int y) const;
     bool movePiece(int fromX, int fromY, int toX, int toY);
     bool isMoveValid(int fromX, int fromY, int toX, int toY) const;
+    bool isCapture(int fromX, int fromY, int toX, int toY) const;
     const std::vector<std::vector<Piece*>>& getBoard() const;
     void setupBoard();
 

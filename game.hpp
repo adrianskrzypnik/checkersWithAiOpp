@@ -6,15 +6,15 @@
 class Game {
 public:
     Game();
-    void play();
-
+    void playTwoPlayers();
+    void playWithAI();
 private:
     Board board;
     PieceColor currentPlayer;
 
-    void printBoard();
     void switchPlayer();
     bool makeMove(int fromX, int fromY, int toX, int toY);
+    void printBoard();
 };
 
 

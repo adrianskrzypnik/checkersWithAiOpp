@@ -1,14 +1,14 @@
-// game.cpp
-
 #include "game.hpp"
 #include <iostream>
+#include "ai.hpp"
 
 Game::Game() : currentPlayer(PieceColor::White) {}
 
-void Game::play() {
+void Game::playTwoPlayers() {
     while (true) {
         printBoard();
         int fromX, fromY, toX, toY;
+        std::cout << "Player " << (currentPlayer == PieceColor::White ? "White" : "Black") << "'s turn. ";
         std::cout << "Enter move (fromX fromY toX toY): ";
         std::cin >> fromX >> fromY >> toX >> toY;
 
@@ -19,6 +19,39 @@ void Game::play() {
         }
     }
 }
+
+void Game::playWithAI() {
+    AI ai;
+    while (true) {
+        if (currentPlayer == PieceColor::Black) { // AI
+            std::pair<int, int> bestMove = ai.getBestMove(board);
+            int aiFromX = bestMove.first;
+            int aiFromY = bestMove.second;
+            int aiToX = bestMove.first + 1; // Przykładowy ruch AI (zmień według potrzeb)
+            int aiToY = bestMove.second + 1; // Przykładowy ruch AI (zmień według potrzeb)
+
+            if (board.isMoveValid(aiFromX, aiFromY, aiToX, aiToY)) {
+                board.movePiece(aiFromX, aiFromY, aiToX, aiToY);
+                switchPlayer();
+            } else {
+                std::cout << "AI made an invalid move.\n";
+                // Dodaj kod obsługujący sytuację, gdy AI wykona nieprawidłowy ruch
+            }
+        } else { // Gracz
+            printBoard();
+            int fromX, fromY, toX, toY;
+            std::cout << "Player White's turn. Enter move (fromX fromY toX toY): ";
+            std::cin >> fromX >> fromY >> toX >> toY;
+
+            if (makeMove(fromX, fromY, toX, toY)) {
+                switchPlayer();
+            } else {
+                std::cout << "Invalid move. Try again.\n";
+            }
+        }
+    }
+}
+
 
 void Game::printBoard() {
 

@@ -51,23 +51,62 @@ void Board::setupBoard() {
 }
 
 bool Board::isValidMove(int fromX, int fromY, int toX, int toY) const {
-    // Check bounds and move validity
-    if (toX < 0 || toX >= 8 || toY < 0 || toY >= 8) return false;
-    if (grid[toX][toY] != nullptr) return false;
+    // Sprawdź, czy pole docelowe mieści się na planszy
+    if (toX < 0 || toX >= 8 || toY < 0 || toY >= 8) {
+        return false;
+    }
 
+    // Sprawdź, czy pole źródłowe i docelowe są różne
+    if (fromX == toX && fromY == toY) {
+        return false;
+    }
+
+    // Sprawdź, czy pole źródłowe zawiera pionka
     Piece* piece = grid[fromX][fromY];
-    if (piece == nullptr) return false;
+    if (piece == nullptr) {
+        return false;
+    }
 
+    // Sprawdź, czy pole docelowe jest puste, chyba że to jest ruch bicia
+    if (!isCapture(fromX, fromY, toX, toY) && grid[toX][toY] != nullptr) {
+        return false;
+    }
+
+    // Sprawdź, czy ruch jest poprawny dla pionka
     int dx = toX - fromX;
     int dy = toY - fromY;
 
     if (piece->getType() == PieceType::Man) {
-        if (piece->getColor() == PieceColor::White && dy != -1) return false;
-        if (piece->getColor() == PieceColor::Black && dy != 1) return false;
+        if (piece->getColor() == PieceColor::White && dy != -1) {
+            return false;
+        }
+        if (piece->getColor() == PieceColor::Black && dy != 1) {
+            return false;
+        }
+        // Sprawdź, czy to ruch przekątny o długości 1 lub bicie
+        if (abs(dx) == 1 && abs(dy) == 1) {
+            return true;
+        }
+    } else if (piece->getType() == PieceType::King) {
+        // Dla damki sprawdź, czy to ruch przekątny o długości 1 lub bicie
+        if (abs(dx) == 1 && abs(dy) == 1) {
+            return true;
+        }
     }
 
-    return (abs(dx) == 1 && abs(dy) == 1);
+    return false; // Ruch nie spełnia żadnych warunków
 }
+
+// Funkcja pomocnicza do sprawdzania, czy ruch jest ruchem bicia
+bool Board::isCapture(int fromX, int fromY, int toX, int toY) const {
+    int middleX = (fromX + toX) / 2;
+    int middleY = (fromY + toY) / 2;
+    Piece* middlePiece = grid[middleX][middleY];
+    return (middlePiece != nullptr && middlePiece->getColor() != grid[fromX][fromY]->getColor());
+}
+
+
+
 
 bool Board::isMoveValid(int fromX, int fromY, int toX, int toY) const {
     return isValidMove(fromX, fromY, toX, toY);
