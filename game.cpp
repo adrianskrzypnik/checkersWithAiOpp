@@ -13,7 +13,9 @@ void Game::playTwoPlayers() {
         std::cin >> fromX >> fromY >> toX >> toY;
 
         if (makeMove(fromX, fromY, toX, toY)) {
-            switchPlayer();
+            // MoveResult is handled inside makeMove
+        } else if (board.canAnyPieceCapture(currentPlayer)) {
+            std::cout << "You need to capture. Try again.\n";
         } else {
             std::cout << "Invalid move. Try again.\n";
         }
@@ -88,10 +90,28 @@ void Game::switchPlayer() {
     currentPlayer = (currentPlayer == PieceColor::White) ? PieceColor::Black : PieceColor::White;
 }
 
+
 bool Game::makeMove(int fromX, int fromY, int toX, int toY) {
     Piece* piece = board.getPiece(fromX, fromY);
     if (piece == nullptr || piece->getColor() != currentPlayer) {
         return false;
     }
-    return board.movePiece(fromX, fromY, toX, toY);
+
+    if (board.canAnyPieceCapture(currentPlayer)) {
+        if (!board.isCapture(fromX, fromY, toX, toY)) {
+            return false;
+        }
+    }
+    MoveResult result = board.movePiece(fromX, fromY, toX, toY);
+    if (result.isValid) {
+        if (!result.isCapture || !board.canCaptureAgain(toX, toY)) {
+            switchPlayer();
+        }
+    }
+    return result.isValid;
 }
+
+
+
+
+

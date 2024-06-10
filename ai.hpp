@@ -7,10 +7,10 @@
 class AI {
 public:
     std::pair<int, int> getBestMove(Board& board);
-    int evaluateBoard(const Board& board);
 
 private:
-    int minimax(Board& board, int depth, bool maximizingPlayer, int alpha, int beta);
+    int minimax(Board& board, int depth, bool maximizingPlayer);
+    int evaluate(Board& board);
 };
 
 #endif //ALGO3_AI_HPP

@@ -21,39 +21,65 @@ Piece* Board::getPieceAt(int x, int y) const {
     return grid[x][y];
 }
 
-bool Board::movePiece(int fromX, int fromY, int toX, int toY) {
-    if (!isMoveValid(fromX, fromY, toX, toY)) {
-        return false;
+
+
+MoveResult Board::movePiece(int fromX, int fromY, int toX, int toY) {
+    MoveResult result;
+    result.isValid = false;
+    result.isCapture = false;
+
+    if (!isValidMove(fromX, fromY, toX, toY)) {
+        return result;
     }
+
     Piece* piece = grid[fromX][fromY];
     grid[toX][toY] = piece;
     grid[fromX][fromY] = nullptr;
 
-    // Sprawdź, czy to było bicie
     int dx = toX - fromX;
     int dy = toY - fromY;
-    if (abs(dx) == 2 && abs(dy) == 2) {
-        int captureX = fromX + dx / 2;
-        int captureY = fromY + dy / 2;
-        delete grid[captureX][captureY];
-        grid[captureX][captureY] = nullptr;
 
-        // Sprawdzenie podwójnego bicia
-        int newToX = toX + (dx / 2);
-        int newToY = toY + (dy / 2);
-        if (newToX >= 0 && newToX < 8 && newToY >= 0 && newToY < 8) {
-            if (isValidMove(toX, toY, newToX, newToY)) {
-                movePiece(toX, toY, newToX, newToY);
+    if (piece->getType() == PieceType::Man) {
+        if (abs(dx) == 2 && abs(dy) == 2) {
+            int captureX = fromX + dx / 2;
+            int captureY = fromY + dy / 2;
+            delete grid[captureX][captureY];
+            grid[captureX][captureY] = nullptr;
+            result.isCapture = true;
+        }
+    }
+
+    if (piece->getType() == PieceType::King) {
+        if (abs(dx) == abs(dy)) {
+            int stepX = dx / abs(dx);
+            int stepY = dy / abs(dy);
+            int x = fromX + stepX;
+            int y = fromY + stepY;
+            bool hasCaptured = false;
+            while (x != toX && y != toY) {
+                if (grid[x][y] != nullptr) {
+                    if (hasCaptured || grid[x][y]->getColor() == piece->getColor()) {
+                        return result; // Invalid move if the king tries to capture more than one piece
+                    }
+                    delete grid[x][y];
+                    grid[x][y] = nullptr;
+                    result.isCapture = true;
+                    hasCaptured = true;
+                }
+                x += stepX;
+                y += stepY;
             }
         }
     }
 
-    // Promote to king if reaching the last row
     if (piece->getType() == PieceType::Man && (toY == 0 || toY == 7)) {
         piece->promote();
     }
-    return true;
+
+    result.isValid = true;
+    return result;
 }
+
 
 
 void Board::setupBoard() {
@@ -70,55 +96,39 @@ void Board::setupBoard() {
     }
 }
 
-
-bool Board::isCapture(int fromX, int fromY, int toX, int toY) const {
-    int middleX = (fromX + toX) / 2;
-    int middleY = (fromY + toY) / 2;
-    Piece* middlePiece = grid[middleX][middleY];
-    return (middlePiece != nullptr && middlePiece->getColor() != grid[fromX][fromY]->getColor());
-}
-
 bool Board::isValidMove(int fromX, int fromY, int toX, int toY) const {
-    // Sprawdź, czy pole docelowe mieści się na planszy
     if (toX < 0 || toX >= 8 || toY < 0 || toY >= 8) {
         return false;
     }
 
-    // Sprawdź, czy pole źródłowe i docelowe są różne
     if (fromX == toX && fromY == toY) {
         return false;
     }
 
-    // Sprawdź, czy pole źródłowe zawiera pionka
     Piece* piece = grid[fromX][fromY];
     if (piece == nullptr) {
         return false;
     }
 
-    // Sprawdź, czy pole docelowe jest puste
     if (grid[toX][toY] != nullptr) {
         return false;
     }
 
-    // Określ kierunek ruchu
+    int dx = toX - fromX;
     int dy = toY - fromY;
-    if (piece->getColor() == PieceColor::White && dy >= 0) {
-        return false; // Białe pionki mogą poruszać się tylko w dół
-    }
-    if (piece->getColor() == PieceColor::Black && dy <= 0) {
-        return false; // Czarne pionki mogą poruszać się tylko w górę
-    }
 
-    // Ruchy pionków typu Man
     if (piece->getType() == PieceType::Man) {
-        int dx = toX - fromX;
+        if (piece->getColor() == PieceColor::White && dy >= 0) {
+            return false;
+        }
+        if (piece->getColor() == PieceColor::Black && dy <= 0) {
+            return false;
+        }
 
-        // Ruchy o jedno pole w przód
         if (abs(dx) == 1 && abs(dy) == 1) {
             return true;
         }
 
-        // Bicie - ruchy o dwa pola w przód
         if (abs(dx) == 2 && abs(dy) == 2) {
             int captureX = fromX + dx / 2;
             int captureY = fromY + dy / 2;
@@ -127,44 +137,98 @@ bool Board::isValidMove(int fromX, int fromY, int toX, int toY) const {
                 return true;
             }
         }
-
-        // Podwójne bicie - sprawdzenie następnych pól
-        if (abs(dx) == 2 && abs(dy) == 2) {
-            int middleX = fromX + dx / 2;
-            int middleY = fromY + dy / 2;
-            Piece* middlePiece = grid[middleX][middleY];
-            if (middlePiece != nullptr && middlePiece->getColor() != piece->getColor()) {
-                int nextX = toX + (dx / 2);
-                int nextY = toY + (dy / 2);
-                if (nextX >= 0 && nextX < 8 && nextY >= 0 && nextY < 8 && grid[nextX][nextY] == nullptr) {
-                    return true;
-                }
-            }
-        }
     }
 
-    // Ruchy damki (King)
     if (piece->getType() == PieceType::King) {
-        // Damka może poruszać się o dowolną liczbę pól po przekątnej, jeśli wszystkie po drodze są puste
-        int dx = toX - fromX;
-        int dy = toY - fromY;
         if (abs(dx) == abs(dy)) {
             int stepX = dx / abs(dx);
             int stepY = dy / abs(dy);
             int x = fromX + stepX;
             int y = fromY + stepY;
+            bool hasCaptured = false;
             while (x != toX && y != toY) {
                 if (grid[x][y] != nullptr) {
-                    return false;
+                    if (hasCaptured || grid[x][y]->getColor() == piece->getColor()) {
+                        return false;
+                    }
+                    hasCaptured = true;
                 }
                 x += stepX;
                 y += stepY;
             }
             return true;
         }
+    }
 
-        // Sprawdzenie bicia przez damkę
-        if (abs(dx) > 1 && abs(dy) > 1 && abs(dx) == abs(dy)) {
+    return false;
+}
+
+
+bool Board::canCaptureAgain(int fromX, int fromY) const {
+    Piece* piece = grid[fromX][fromY];
+    if (piece == nullptr) {
+        return false;
+    }
+
+
+    for (int i = 0; i < 8; ++i) {
+        if (piece->getType() == PieceType::Man) {
+            int directions[4][2] = {{-2, -2}, {-2, 2}, {2, -2}, {2, 2}};
+            int toX = fromX + directions[i][0];
+            int toY = fromY + directions[i][1];
+            if (isValidMove(fromX, fromY, toX, toY) && isCapture(fromX, fromY, toX, toY)) {
+                return true;
+            }
+            if (i>5){
+                break;
+            }
+        }
+        if (piece->getType() == PieceType::King) {
+            int directions[8][2] = {{-2, -2}, {-2, 2}, {2, -2}, {2, 2}, {-3, -3}, {-3, 3}, {3, -3}, {3, 3}};
+            int stepX = directions[i][0];
+            int stepY = directions[i][1];
+            int x = fromX + stepX;
+            int y = fromY + stepY;
+            while (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                if (isCapture(fromX, fromY, x, y)) {
+                    return true;
+                }
+                if (grid[x][y] != nullptr) {
+                    break;
+                }
+                x += stepX;
+                y += stepY;
+            }
+        }
+    }
+    return false;
+}
+
+
+
+bool Board::isCapture(int fromX, int fromY, int toX, int toY) const {
+    Piece* piece = grid[fromX][fromY];
+    if (piece == nullptr || grid[toX][toY] != nullptr) {
+        return false;
+    }
+
+    int middleX = (fromX + toX) / 2;
+    int middleY = (fromY + toY) / 2;
+    Piece* middlePiece = grid[middleX][middleY];
+    if (middlePiece == nullptr || middlePiece->getColor() == piece->getColor()) {
+        return false;
+    }
+
+    if (piece->getType() == PieceType::Man) {
+        int dx = toX - fromX;
+        int dy = toY - fromY;
+        if (abs(dx) == 2 && abs(dy) == 2) {
+            return true;
+        }
+    } else if (piece->getType() == PieceType::King) {
+        int dx = toX - fromX;
+        int dy = toY - fromY;
+        if (abs(dx) == abs(dy)) {
             int stepX = dx / abs(dx);
             int stepY = dy / abs(dy);
             int x = fromX + stepX;
@@ -183,11 +247,23 @@ bool Board::isValidMove(int fromX, int fromY, int toX, int toY) const {
             return hasCaptured;
         }
     }
-
-    return false; // Ruch nie spełnia żadnych warunków
+    return false;
 }
 
 
+bool Board::canAnyPieceCapture(PieceColor color) const {
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            Piece* piece = grid[i][j];
+            if (piece != nullptr && piece->getColor() == color) {
+                if (canCaptureAgain(i, j)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 
 
 

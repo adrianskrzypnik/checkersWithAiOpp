@@ -1,108 +1,60 @@
-// ai.cpp
+// AI.cpp
 
 #include "ai.hpp"
+#include <limits>
 
 std::pair<int, int> AI::getBestMove(Board& board) {
-    int bestValue = -10000;
     std::pair<int, int> bestMove;
+    int bestValue = std::numeric_limits<int>::min();
+    int depth = 3; // głębokość przeszukiwania drzewa gry
 
-    for (int i = 0; i < 8; ++i) {
-        for (int j = 0; j < 8; ++j) {
-            Piece* piece = board.getPieceAt(i, j);
-            if (piece != nullptr && piece->getColor() == PieceColor::Black) {
-                for (int dx = -1; dx <= 1; dx += 2) {
-                    for (int dy = -1; dy <= 1; dy += 2) {
-                        int toX = i + dx;
-                        int toY = j + dy;
-                        if (board.isMoveValid(i, j, toX, toY)) {
-                            Board tempBoard = board;
-                            tempBoard.movePiece(i, j, toX, toY);
-                            int moveValue = minimax(tempBoard, 0, false, -10000, 10000);
-                            if (moveValue > bestValue) {
-                                bestValue = moveValue;
-                                bestMove = {i, j};
-                            }
-                        }
-                    }
-                }
-            }
+    auto possibleMoves = board.getAllPossibleMoves(); // Załóżmy, że ta funkcja zwraca możliwe ruchy
+
+    for (const auto& move : possibleMoves) {
+        board.makeMove(move);
+        int value = minimax(board, depth, false); // AI jest graczem minimalizującym
+        board.undoMove(move);
+
+        if (value > bestValue) {
+            bestValue = value;
+            bestMove = move;
         }
     }
+
     return bestMove;
 }
 
-int AI::minimax(Board& board, int depth, bool maximizingPlayer, int alpha, int beta) {
-    if (depth == 3) {
-        return evaluateBoard(board);
+int AI::minimax(Board& board, int depth, bool maximizingPlayer) {
+    if (depth == 0 || board.isGameOver()) {
+        return evaluate(board);
     }
 
     if (maximizingPlayer) {
-        int maxEval = -10000;
-        for (int i = 0; i < 8; ++i) {
-            for (int j = 0; j < 8; ++j) {
-                Piece* piece = board.getPieceAt(i, j);
-                if (piece != nullptr && piece->getColor() == PieceColor::White) {
-                    for (int dx = -1; dx <= 1; dx += 2) {
-                        for (int dy = -1; dy <= 1; dy += 2) {
-                            int toX = i + dx;
-                            int toY = j + dy;
-                            if (board.isMoveValid(i, j, toX, toY)) {
-                                Board tempBoard = board;
-                                tempBoard.movePiece(i, j, toX, toY);
-                                int eval = minimax(tempBoard, depth + 1, false, alpha, beta);
-                                maxEval = std::max(maxEval, eval);
-                                alpha = std::max(alpha, eval);
-                                if (beta <= alpha) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        int maxEval = std::numeric_limits<int>::min();
+        auto possibleMoves = board.getAllPossibleMoves();
+        for (const auto& move : possibleMoves) {
+            board.makeMove(move);
+            int eval = minimax(board, depth - 1, false);
+            board.undoMove(move);
+            maxEval = std::max(maxEval, eval);
         }
         return maxEval;
     } else {
-        int minEval = 10000;
-        for (int i = 0; i < 8; ++i) {
-            for (int j = 0; j < 8; ++j) {
-                Piece* piece = board.getPieceAt(i, j);
-                if (piece != nullptr && piece->getColor() == PieceColor::Black) {
-                    for (int dx = -1; dx <= 1; dx += 2) {
-                        for (int dy = -1; dy <= 1; dy += 2) {
-                            int toX = i + dx;
-                            int toY = j + dy;
-                            if (board.isMoveValid(i, j, toX, toY)) {
-                                Board tempBoard = board;
-                                tempBoard.movePiece(i, j, toX, toY);
-                                int eval = minimax(tempBoard, depth + 1, true, alpha, beta);
-                                minEval = std::min(minEval, eval);
-                                beta = std::min(beta, eval);
-                                if (beta <= alpha) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        int minEval = std::numeric_limits<int>::max();
+        auto possibleMoves = board.getAllPossibleMoves();
+        for (const auto& move : possibleMoves) {
+            board.makeMove(move);
+            int eval = minimax(board, depth - 1, true);
+            board.undoMove(move);
+            minEval = std::min(minEval, eval);
         }
         return minEval;
     }
 }
 
-int AI::evaluateBoard(const Board& board) {
-    int score = 0;
-    for (const auto& row : board.getBoard()) {
-        for (const auto& piece : row) {
-            if (piece != nullptr) {
-                if (piece->getColor() == PieceColor::White) {
-                    score += (piece->getType() == PieceType::King) ? 5 : 1;
-                } else {
-                    score -= (piece->getType() == PieceType::King) ? 5 : 1;
-                }
-            }
-        }
-    }
-    return score;
+int AI::evaluate(Board& board) {
+    // Prosta funkcja oceny, która przydziela punkty na podstawie pozycji pionków na planszy
+    int whiteScore = board.countWhitePieces();
+    int blackScore = board.countBlackPieces();
+    return whiteScore - blackScore;
 }
